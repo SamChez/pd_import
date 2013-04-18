@@ -1,0 +1,9 @@
+; $Id: pdisclosures.info Exp $
+name = "Proactive Disclosures"
+description = "Manage Proactive Disclosures."
+core = 7.x
+package = - CTA
+dependencies[] = cta
+dependencies[] = views   
+dependencies[] = upload_element
+

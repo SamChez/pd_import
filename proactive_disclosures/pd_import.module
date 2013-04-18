@@ -1,0 +1,266 @@
+<?php
+// $Id: pdisclosures.module,v 1.9.2.11 2008/11/02 13:04:01  Exp $
+
+/**
+ * @file
+ *
+ * The main pdisclosures.module file
+ *
+ * General custom functions for the Canadian Transport Agency INTERNET site.
+ */
+
+function pd_import_init() {
+  //drupal_add_js(drupal_get_path('module', 'pdisclosures') . "/pdisclosures.js");  
+  //drupal_add_css(drupal_get_path('module', 'pdisclosures') . "/pdisclosures.css");  
+    
+} 
+
+function pd_import_menu() {
+  $items = array();
+  
+  $items['admin/content/disclosures'] = array(
+    'title' => 'Proactive Disclosures Administration',
+    'page callback' => 'disclosures_admin_page',
+    'access arguments' => array('administer disclosures'), 
+    'type' => MENU_LOCAL_TASK,
+  );         
+  
+  $items['admin/content/disclosures/general'] = array(
+    'title' => 'Proactive Disclosures Administration',
+    'page callback' => 'disclosures_admin_page',
+    'access arguments' => array('administer disclosures'), 
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -11,
+  );  
+  
+  $items['admin/content/disclosures/settings'] = array(
+    'title' => 'Configuration',
+    'access arguments' => array('administer site configuration'), 
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('pdisclosures_admin_settings'), 
+    'type' => MENU_LOCAL_TASK,
+    'weight' => -10,
+  );          
+  
+  $items['admin/content/disclosures/import'] = array(
+    'title' => 'Import',
+    'access arguments' => array('import disclosures'), 
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('pdisclosures_import_form'),
+    'file' => 'pd.import.inc', 
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 10,
+  );
+  
+  return $items;
+}
+
+function pd_import_permission() {
+  return array(
+    'administer disclosures' => array('title' => t('Administer disclosures'),),
+    'import disclosures' => array('title' => t('Import disclosures'),),
+  );
+}
+
+// System Admin Form - callback for menu item listed above
+//function pdisclosures_admin_settings() {
+//  drupal_set_title(t('Proactive Disclosure Configuration'));
+//  
+//  $form['help'] = array(
+//    '#markup' => t("<p>Proactive Disclosures are published on the dates selected here. When the dates below are hit, all PD's which are:</p>
+//      <ul>
+//      <li>not currently published</li> 
+//      <li>whose 'publishing date' has passed</li> 
+//      <li> have been set as 'verified' (for certain PD types)</li>
+//      </ul>
+//      <p>will be set as published.</p>"),
+//    );
+//  
+//  $types = content_types();
+//  foreach($types as $name => $type) {
+//    if (substr($name, 0, 2) != "pd") continue;
+//    $pdtypes[$name] = $type;
+//  }
+//  
+//  $quarters = array(
+//    1 => t("First Quarter"),
+//    2 => t("Second Quarter"),
+//    3 => t("Third Quarter"),
+//    4 => t("Fourth Quarter"),
+//  );
+//  
+//  foreach ($pdtypes as $name => $type) { 
+//    $form[$name] = array(
+//      '#type' => 'fieldset',
+//      '#title' => $type['name'] . " Publishing Dates and CRON View",
+//      '#collapsible' => true, 
+//      '#collapsed' => true,
+//    );
+//    
+//    foreach ($quarters as $index => $quarter) {
+//      $form[$name][$name . "_" . $index] = array(
+//        '#type' => 'date_select',
+//        '#date_format' => "M d",
+//        '#title' => $quarter,    
+//        '#default_value' => variable_get($name . "_" . $index, ""),
+//      );
+//        $form[$name][$name . "_" . $index . "period"] = array(
+//          '#type' => 'fieldset',
+//          '#title' => t("Reporting period"),
+//          '#collapsible' => true, 
+//          '#collapsed' => true,
+//        );
+//        $form[$name][$name . "_" . $index . "period"][$name . "_" . $index . "start"] = array(
+//          '#type' => 'date_select',
+//          '#date_format' => "M d",
+//          '#title' => t("Start"),    
+//          '#default_value' => variable_get($name . "_" . $index . "start", ""),
+//        );           
+//        $form[$name][$name . "_" . $index . "period"][$name . "_" . $index . "end"] = array(
+//          '#type' => 'date_select',
+//          '#date_format' => "M d",
+//          '#title' => t("End"),    
+//          '#default_value' => variable_get($name . "_" . $index . "end", ""),
+//        );
+//    }
+//    
+//    $form[$name][$name . "_view"] = array(
+//      '#type' => 'textfield',
+//      '#title' => t("Enter the display name of the pd_admin view which is used to select items to be published"),    
+//      '#default_value' => variable_get($name . '_view', null), 
+//    );
+//      
+//  }
+//
+//  return system_settings_form($form);
+//}
+
+/**
+* create main Rulings administration landing page
+* 
+*/
+function pd_import_admin_page() {
+  drupal_set_title(t("Proactive Disclosures Administration"));
+  
+  $output = "";
+  
+  // Contracts
+  $output .= '<h2 class="title">' . t("Contracts") . '</h2>';
+  
+  $links[] = cta_admin_link("Add Contract Expense", "node/add/pdcontract", "create pdcontract content");      
+  $links[] = cta_admin_link("Edit a Contract Expense", "admin/content/disclosures/contracts", "administer disclosures");   
+  //$links[] = l(t("Edit Member List"), "admin/content/rulings/members") . cta_admin_link("create member content");
+  //$links[] = l(t("Edit Quick Start List"), "admin/content/rulings/quick") . cta_admin_link("create quick_title content"); 
+    
+  $output .= theme('item_list', $links);
+  
+  // Travel Expenses
+  $output .= '<h2 class="title">' . t("Travel Expenses") . '</h2>';
+  
+  $links = array();
+  $links[] = cta_admin_link("Add Travel Expense", "node/add/pdtravel", "create pdtravel content");      
+  $links[] = cta_admin_link("Edit a Travel Expense", "admin/content/disclosures/travel", "administer disclosures");   
+    
+  $output .= theme('item_list', $links);
+  
+  // Hospitality Expenses
+  $output .= '<h2 class="title">' . t("Hospitality Expenses") . '</h2>';
+  
+  $links = array();
+  $links[] = cta_admin_link("Add Hospitality Expense", "node/add/pdhospitality", "create pdhospitality content");
+  $links[] = cta_admin_link("Edit a Hospitality Expense", "admin/content/disclosures/hospitality", "administer disclosures");   
+    
+  $output .= theme('item_list', $links);
+  
+  // Reclassifications
+  $output .= '<h2 class="title">' . t("Reclassifications") . '</h2>';
+  
+  $links = array();
+  $links[] = cta_admin_link("Add a Reclassification", "node/add/pdreclassification", "create pdreclassification content");
+  $links[] = cta_admin_link("Edit a Reclassification", "admin/content/disclosures/reclassifies", "administer disclosures");   
+    
+  $output .= theme('item_list', $links);
+  
+  // Individuals
+  $output .= '<h2 class="title">' . t("Individuals") . '</h2>';
+  
+  $links = array();
+  $links[] = cta_admin_link("Add an Individual", "node/add/individual", "create individual content");      
+  $links[] = cta_admin_link("Edit an Individual", "admin/content/disclosures/individuals", "administer disclosures");   
+    
+  $output .= theme('item_list', $links);
+  
+  // Imports
+  $output .= '<h2 class="title">' . t("Import Proactive Disclosure Data") . '</h2>';
+  
+  $links = array();
+  $links[] = cta_admin_link("Batch Import PDs", "admin/content/disclosures/import", "import disclosures");      
+    
+  $output .= theme('item_list', $links);
+  
+  return $output;
+}
+ 
+
+/**
+ * Implementation of hook_nodeapi().
+ */
+function pdisclosures_nodeapi(&$node, $op, $arg, $a4) {
+
+  switch ($op) {
+    case 'validate':
+      
+      break;
+      
+    case 'view':
+
+      break;
+  }
+}
+              
+ 
+function pdisclosures_form_alter(&$form, &$form_state, $form_id) {
+  
+} 
+
+
+/**
+* set all PDs to published that are ready to be published
+* 
+*   - not currently published
+*   - whose 'publishing date' has passed
+*   - have been set to 'verified' state
+* 
+*/
+function pd_import_cron() {
+  $types = content_types();
+  foreach($types as $name => $type) {
+    if (substr($name, 0, 2) != "pd") continue;
+    $pdtypes[$name] = $type;
+    
+    $now = date("n-j", time());
+    $cutoff = date("Y-n-j", time());
+    
+    // check if any of the PD Cutoffs for this type are NOW
+    for ($i=1 ; $i<=4 ; $i++) {
+      if ($now == date_part_extract(variable_get($name . "_$i", null), 'month') . "-" . date_part_extract(variable_get($name . "_$i", null), 'day')) {
+        $items = array();
+        $items = views_get_view_result('pd_admin', variable_get($name . "_view", null), '1999-01-01--' . $cutoff);
+        foreach ($items as $item) {
+          $node = node_load($item->nid);  
+          
+          // set WORKFLOW to Published
+          //  - actually we just set to NEXT state since we had to be Verified to be in the list being processed right now
+          actions_do('workflow_select_next_state_action', $node);
+          
+          //$node->status = 1;     
+          //node_save($node);
+        }
+      }
+    }
+  }
+}
+
+
+
+
